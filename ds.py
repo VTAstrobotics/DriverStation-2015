@@ -1,12 +1,16 @@
 #! /usr/bin/env python
 
+import time
 import struct
 import socket as so
-import Tkinter as tk
+import pygame
 from crc16pure import crc16xmodem
 
 ControlData_format = '<B'
+win_size = (500, 50)
 
+running = True
+key_text = ''
 control = {'up': False, 'down': False, 'left': False, 'right': False}
 
 def update_control(k, pressed):
@@ -22,21 +26,41 @@ def send_data(data):
 	sock.sendto(data, ('192.168.0.2', 6800))
 
 def keyevent(event):
-	k = event.keysym
-	key_text.set(k)
-	update_control(k, event.type == '2') # KeyPress = 2
+	global key_text
+	k = pygame.key.name(event.key)
+	key_text = k
+	update_control(k, event.type == pygame.KEYDOWN)
 	send_data(control)
+
+def render():
+	screen.fill((223, 223, 223))
+
+	help_label = font.render("Press arrow keys to transmit", True, (0, 0, 0))
+	help_rect = help_label.get_rect()
+	help_rect.midtop = (win_size[0] / 2, 4)
+	screen.blit(help_label, help_rect)	
+
+	key_label = font.render(key_text, True, (0, 0, 0))
+	key_rect = key_label.get_rect()
+	key_rect.midbottom = (win_size[0] / 2, win_size[1] - 4)
+	screen.blit(key_label, key_rect)
 
 sock = so.socket(so.AF_INET, so.SOCK_DGRAM)
 sock.setsockopt(so.SOL_SOCKET, so.SO_REUSEADDR, 1)
 
-root = tk.Tk()
-root.geometry('500x50')
-label = tk.Label(root, text="Press arrow keys to transmit", font=('', 14))
-key_text = tk.StringVar()
-key_label = tk.Label(root, textvariable=key_text, font=('', 14))
-label.pack()
-key_label.pack()
-root.bind('<KeyPress>', keyevent)
-root.bind('<KeyRelease>', keyevent)
-root.mainloop()
+pygame.init()
+screen = pygame.display.set_mode(win_size)
+pygame.display.set_caption("Astrobotics 2015 Driver Station")
+font = pygame.font.Font(None, 22)
+pygame.display.flip()
+
+while running:
+	for event in pygame.event.get():
+		if event.type == pygame.QUIT:
+			running = False
+		elif event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
+			keyevent(event)
+
+	render()
+	pygame.display.flip()
+	time.sleep(0.01)
