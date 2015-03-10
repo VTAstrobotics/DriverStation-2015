@@ -1,4 +1,5 @@
 #! /usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import time
 import struct
@@ -10,10 +11,10 @@ from crc16pure import crc16xmodem
 font_color = (0, 0, 0)
 win_size = (500, 50)
 padding = 4
+arrow_block_size = 40
 
 # GUI stuff
 running = True
-key_text = ''
 
 # Control data
 ControlData_format = '<B'
@@ -38,9 +39,18 @@ def send_data(data):
 def keyevent(event):
     global key_text
     k = pygame.key.name(event.key)
-    key_text = k
     update_control(k, event.type == pygame.KEYDOWN)
     send_data(control)
+
+def render_arrow_block(char, fromright, active):
+    if active:
+        color = font_color
+    else:
+        color = [0xBB] * 3
+    label = arrow_font.render(char, True, color)
+    rect = label.get_rect()
+    rect.midbottom = (win_size[0] - padding - arrow_block_size * (fromright + 0.5), win_size[1] - padding)
+    screen.blit(label, rect)
 
 def render():
     screen.fill((223, 223, 223))
@@ -56,10 +66,10 @@ def render():
     teleop_rect.bottomleft = (padding, win_size[1] - padding)
     screen.blit(teleop_label, teleop_rect)
 
-    key_label = font.render(key_text, True, font_color)
-    key_rect = key_label.get_rect()
-    key_rect.midbottom = (win_size[0] / 2, win_size[1] - padding)
-    screen.blit(key_label, key_rect)
+    render_arrow_block(u'↑', 3, control['up'])
+    render_arrow_block(u'↓', 2, control['down'])
+    render_arrow_block(u'←', 1, control['left'])
+    render_arrow_block(u'→', 0, control['right'])
 
 sock = so.socket(so.AF_INET, so.SOCK_DGRAM)
 sock.setsockopt(so.SOL_SOCKET, so.SO_REUSEADDR, 1)
@@ -67,7 +77,8 @@ sock.setsockopt(so.SOL_SOCKET, so.SO_REUSEADDR, 1)
 pygame.init()
 screen = pygame.display.set_mode(win_size)
 pygame.display.set_caption("Astrobotics 2015 Driver Station")
-font = pygame.font.SysFont('Verdana', 14)
+font = pygame.font.SysFont('Verdana', 13)
+arrow_font = pygame.font.SysFont('Arial', 18)
 pygame.display.flip()
 
 while running:
