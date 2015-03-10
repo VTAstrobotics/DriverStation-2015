@@ -6,12 +6,18 @@ import socket as so
 import pygame
 from crc16pure import crc16xmodem
 
-ControlData_format = '<B'
+# GUI constants
+font_color = (0, 0, 0)
 win_size = (500, 50)
+padding = 4
 
+# GUI stuff
 running = True
 key_text = ''
-control = {'up': False, 'down': False, 'left': False, 'right': False}
+
+# Control data
+ControlData_format = '<B'
+control = {'teleop': True, 'up': False, 'down': False, 'left': False, 'right': False}
 
 def update_control(k, pressed):
     k = k.lower()
@@ -19,10 +25,14 @@ def update_control(k, pressed):
         control[k] = pressed
 
 def send_data(data):
-    dir_data = int(data['up']) | (int(data['down']) << 1) | (int(data['left']) << 2) | (int(data['right']) << 3)
-    data_bare = struct.pack(ControlData_format, dir_data)
+    bitfield = (int(data['teleop'])) \
+             | (int(data['up']) << 1) \
+             | (int(data['down']) << 2) \
+             | (int(data['left']) << 3) \
+             | (int(data['right']) << 4)
+    data_bare = struct.pack(ControlData_format, bitfield)
     crc16 = crc16xmodem(data_bare)
-    data = struct.pack(ControlData_format + 'H', dir_data, crc16)
+    data = struct.pack(ControlData_format + 'H', bitfield, crc16)
     sock.sendto(data, ('192.168.0.2', 6800))
 
 def keyevent(event):
@@ -35,14 +45,20 @@ def keyevent(event):
 def render():
     screen.fill((223, 223, 223))
 
-    help_label = font.render("Press arrow keys to transmit", True, (0, 0, 0))
+    help_label = font.render("Press arrow keys to transmit", True, font_color)
     help_rect = help_label.get_rect()
-    help_rect.midtop = (win_size[0] / 2, 4)
+    help_rect.midtop = (win_size[0] / 2, padding)
     screen.blit(help_label, help_rect)
 
-    key_label = font.render(key_text, True, (0, 0, 0))
+    teleop_text = "Teleop" if control['teleop'] else "Autonomous"
+    teleop_label = font.render("Mode: %s" % teleop_text, True, font_color)
+    teleop_rect = teleop_label.get_rect()
+    teleop_rect.bottomleft = (padding, win_size[1] - padding)
+    screen.blit(teleop_label, teleop_rect)
+
+    key_label = font.render(key_text, True, font_color)
     key_rect = key_label.get_rect()
-    key_rect.midbottom = (win_size[0] / 2, win_size[1] - 4)
+    key_rect.midbottom = (win_size[0] / 2, win_size[1] - padding)
     screen.blit(key_label, key_rect)
 
 sock = so.socket(so.AF_INET, so.SOCK_DGRAM)
@@ -51,7 +67,7 @@ sock.setsockopt(so.SOL_SOCKET, so.SO_REUSEADDR, 1)
 pygame.init()
 screen = pygame.display.set_mode(win_size)
 pygame.display.set_caption("Astrobotics 2015 Driver Station")
-font = pygame.font.Font(None, 22)
+font = pygame.font.SysFont('Verdana', 14)
 pygame.display.flip()
 
 while running:
