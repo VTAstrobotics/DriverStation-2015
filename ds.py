@@ -18,7 +18,7 @@ running = True
 
 # Control data
 ControlData_format = '<B'
-control = {'teleop': True, 'up': False, 'down': False, 'left': False, 'right': False}
+control = {'teleop': False, 'up': False, 'down': False, 'left': False, 'right': False}
 
 def update_control(k, pressed):
     k = k.lower()
@@ -39,7 +39,10 @@ def send_data(data):
 def keyevent(event):
     global key_text
     k = pygame.key.name(event.key)
-    update_control(k, event.type == pygame.KEYDOWN)
+    if k == 't' and event.type == pygame.KEYDOWN:
+        control['teleop'] = not control['teleop']
+    else:
+        update_control(k, event.type == pygame.KEYDOWN)
     send_data(control)
 
 def render_arrow_block(char, fromright, active):
