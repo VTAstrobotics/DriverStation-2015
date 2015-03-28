@@ -4,93 +4,51 @@
 import time
 import struct
 import socket as so
-import pygame
+from utils import *
 from crc16pure import crc16xmodem
+from XboxController import XboxController
+XboxControls = XboxController.XboxControls
 
-# GUI constants
-font_color = (0, 0, 0)
-win_size = (500, 50)
-padding = 4
-arrow_block_size = 40
+ControlData_format = '<BB'
 
-# GUI stuff
-running = True
+def clamp(minN, maxN, N):
+    return max(min(maxN, N), minN)
 
-# Control data
-ControlData_format = '<B'
-control = {'teleop': False, 'up': False, 'down': False, 'left': False, 'right': False}
+def xboxevent(controlId, value):
+    if controlId <= XboxControls.LTRIGGER:
+        # The triggers have range [0, 100] instead of [-100, 100]
+        # So the final value that is sent will have range [90, 180] instead of [0, 180]
+        value = clamp(0, 180, int((value + 1) * 90))
+    elif controlId == XboxControls.DPAD:
+        # DPAD is 4 groups of 2 bits: +Y -Y +X -X
+        value = (int(value[0] < 0)) \
+              | (int(value[0] > 0) << 2) \
+              | (int(value[1] < 0) << 4) \
+              | (int(value[1] > 0) << 6)
+    print controlId,value
+    send_data(controlId, value)
 
-def update_control(k, pressed):
-    k = k.lower()
-    if k in control:
-        control[k] = pressed
+xbox = XboxController(controllerCallBack = xboxevent, joystickNo = 0, deadzone = 0.2, scale = 1, invertYAxis = False)
 
-def send_data(data):
-    bitfield = (int(data['teleop'])) \
-             | (int(data['up']) << 1) \
-             | (int(data['down']) << 2) \
-             | (int(data['left']) << 3) \
-             | (int(data['right']) << 4)
-    data_bare = struct.pack(ControlData_format, bitfield)
+def send_data(controlId, value):
+    data = [controlId, value]
+    data_bare = struct.pack(ControlData_format, *data)
     crc16 = crc16xmodem(data_bare)
-    data = struct.pack(ControlData_format + 'H', bitfield, crc16)
-    sock.sendto(data, ('192.168.0.2', 6800))
-
-def keyevent(event):
-    global key_text
-    k = pygame.key.name(event.key)
-    if k == 't' and event.type == pygame.KEYDOWN:
-        control['teleop'] = not control['teleop']
-    else:
-        update_control(k, event.type == pygame.KEYDOWN)
-    send_data(control)
-
-def render_arrow_block(char, fromright, active):
-    if active:
-        color = font_color
-    else:
-        color = [0xBB] * 3
-    label = arrow_font.render(char, True, color)
-    rect = label.get_rect()
-    rect.midbottom = (win_size[0] - padding - arrow_block_size * (fromright + 0.5), win_size[1] - padding)
-    screen.blit(label, rect)
-
-def render():
-    screen.fill((223, 223, 223))
-
-    help_label = font.render("Press arrow keys to transmit", True, font_color)
-    help_rect = help_label.get_rect()
-    help_rect.midtop = (win_size[0] / 2, padding)
-    screen.blit(help_label, help_rect)
-
-    teleop_text = "Teleop" if control['teleop'] else "Autonomous"
-    teleop_label = font.render("Mode: %s" % teleop_text, True, font_color)
-    teleop_rect = teleop_label.get_rect()
-    teleop_rect.bottomleft = (padding, win_size[1] - padding)
-    screen.blit(teleop_label, teleop_rect)
-
-    render_arrow_block(u'↑', 3, control['up'])
-    render_arrow_block(u'↓', 2, control['down'])
-    render_arrow_block(u'←', 1, control['left'])
-    render_arrow_block(u'→', 0, control['right'])
+    data.append(crc16)
+    data = struct.pack(ControlData_format + 'H', *data)
+    sock.sendto(data, ('10.0.0.30', 6800))
 
 sock = so.socket(so.AF_INET, so.SOCK_DGRAM)
 sock.setsockopt(so.SOL_SOCKET, so.SO_REUSEADDR, 1)
 
-pygame.init()
-screen = pygame.display.set_mode(win_size)
-pygame.display.set_caption("Astrobotics 2015 Driver Station")
-font = pygame.font.SysFont('Verdana', 13)
-arrow_font = pygame.font.SysFont('Arial', 18)
-pygame.display.flip()
+try:
+    xbox.start()
+    print "Controller started"
+    while True:
+        time.sleep(10)
+except (KeyboardInterrupt, SystemExit):
+    print "Exiting"
+finally:
+    xbox.stop()
 
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        elif event.type == pygame.KEYDOWN or event.type == pygame.KEYUP:
-            keyevent(event)
-
-    render()
-    pygame.display.flip()
-    time.sleep(0.01)
+exit()
