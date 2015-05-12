@@ -4,7 +4,6 @@
 import time
 import struct
 import socket as so
-from utils import *
 from crc16pure import crc16xmodem
 from XboxController import XboxController
 XboxControls = XboxController.XboxControls
