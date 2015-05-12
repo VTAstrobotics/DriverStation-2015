@@ -75,9 +75,10 @@ def _crc16(data, crc, table):
     `crc`       - initial value
     `table`     - table for caclulating CRC (list of 256 integers)
     Return calculated value of CRC
-    """
-    for byte in data:
-        crc = ((crc<<8)&0xff00) ^ table[((crc>>8)&0xff)^ord(byte)]
+    """ 
+    data = bytearray(data)
+    for byte in data: 
+        crc = ((crc<<8)&0xff00) ^ table[((crc>>8)&0xff)^byte]
     return crc & 0xffff
 
 
