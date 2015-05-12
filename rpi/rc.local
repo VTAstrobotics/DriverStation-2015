@@ -1,0 +1,3 @@
+xboxdrv --daemon --detach-kernel-driver --detach --dbus disabled --deadzone 4000 & sleep 1
+python /home/pi/DriverStation-2015/ds.py
+exit 0
