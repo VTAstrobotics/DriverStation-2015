@@ -37,8 +37,8 @@ class ControlMapXbox(object):
             1: JoyControls.LTHUMBY,
             2: JoyControls.RTHUMBX,
             3: JoyControls.RTHUMBY,
-            4: JoyControls.LTRIGGER,
-            5: JoyControls.RTRIGGER}
+            4: JoyControls.RTRIGGER,
+            5: JoyControls.LTRIGGER}
     
     buttons = {0: JoyControls.A,
                1: JoyControls.B,
