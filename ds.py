@@ -8,12 +8,9 @@ import time
 import struct
 import socket as so
 from crc16pure import crc16xmodem
-from joyinput import JoyInput, JoyControls
+from joyinput import JoyInput, JoyControls, clamp
 
 ControlData_format = '<BB'
-
-def clamp(minN, maxN, N):
-    return max(min(maxN, N), minN)
 
 def handler(controlId, value):
     # Format axis data

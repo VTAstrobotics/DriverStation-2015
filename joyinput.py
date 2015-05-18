@@ -7,6 +7,9 @@ import os
 from threading import Thread
 import pygame
 
+def clamp(minN, maxN, N):
+    return max(min(maxN, N), minN)
+
 class JoyControls(object):
         LTHUMBX = 0
         LTHUMBY = 1
@@ -115,6 +118,10 @@ class JoyInput(Thread):
             return
         if abs(value) < self.deadzone:
             value = 0
+        mapped = self.map.axes[axis]
+        if mapped == JoyControls.LTRIGGER or mapped == JoyControls.RTRIGGER:
+            value = (value + 1) / 2
+        value = clamp(-1, 1, value)
         self._fire(self.map.axes[axis], value)
         
     def _handle_dpad(self, value):
