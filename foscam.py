@@ -1,10 +1,9 @@
 import re
 import md5
-import base64
 import httplib
 import socket
 
-class Camera(object):
+class CameraCommands(object):
     R320_240 = 8
     R640_480 = 32
     ptz_type = 0    
@@ -30,6 +29,18 @@ class Camera(object):
     PTZ_PELCO_D_HPATROL_STOP = 21
     IO_ON = 95
     IO_OFF = 94
+
+input_map = {(0, 0):   CameraCommands.PTZ_STOP,
+             (1, 0):   CameraCommands.PAN_RIGHT,
+             (-1, 0):  CameraCommands.PAN_LEFT,
+             (0, 1):   CameraCommands.TILT_UP,
+             (0, -1):  CameraCommands.TILT_DOWN,
+             (1, 1):   CameraCommands.PTZ_RIGHT_UP,
+             (1, -1):  CameraCommands.PTZ_RIGHT_DOWN,
+             (-1, 1):  CameraCommands.PTZ_LEFT_UP,
+             (-1, -1): CameraCommands.PTZ_LEFT_DOWN}
+
+class Camera(object):
     timeout = 5
     
     def __init__(self, username, password, host):
@@ -41,21 +52,8 @@ class Camera(object):
 
     def exec_command(self, dpad):
         cmd = -1
-        if dpad[0] == 0 and dpad[1] == 0:
-            # Stop all movement
-            cmd = self.stop_cmd
-        elif dpad[0] == 1 and dpad[1] == 0:
-            cmd = self.PAN_RIGHT
-            self.stop_cmd = self.PAN_RIGHT_STOP
-        elif dpad[0] == -1 and dpad[1] == 0:
-            cmd = self.PAN_LEFT
-            self.stop_cmd = self.PAN_LEFT_STOP
-        elif dpad[0] == 0 and dpad[1] == -1:
-            cmd = self.TILT_UP
-            self.stop_cmd = self.TILT_UP_STOP
-        elif dpad[0] == 0 and dpad[1] == 1:
-            cmd = self.TILT_DOWN
-            self.stop_cmd = self.TILT_DOWN_STOP
+        if dpad in input_map:
+            cmd = input_map[dpad]
         if cmd > -1:
             self._send(cmd)
             
@@ -91,6 +89,5 @@ class Camera(object):
         try:
             conn = httplib.HTTPConnection(self.host, 80, timeout=self.timeout)
             conn.request('GET', send_path, headers=headers)
-            resp = conn.getresponse().read()
         except socket.error as e:
             print(e)
