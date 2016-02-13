@@ -116,11 +116,12 @@ class JoyInput(Thread):
     def _handle_axis(self, axis, value):
         if axis not in self.map.axes:
             return
-        if abs(value) < self.deadzone:
-            value = 0
         mapped = self.map.axes[axis]
         if mapped == JoyControls.LTRIGGER or mapped == JoyControls.RTRIGGER:
             value = (value + 1) / 2
+        elif abs(value) < self.deadzone:
+            # Apply deadzone only if not trigger
+            value = 0
         value = clamp(-1, 1, value)
         self._fire(self.map.axes[axis], value)
         
